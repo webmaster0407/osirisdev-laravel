@@ -1,0 +1,167 @@
+<div class="m-3">
+    @can('incident_create')
+        <div style="margin-bottom: 10px;" class="row">
+            <div class="col-lg-12">
+                <a class="btn btn-success" href="{{ route('admin.incidents.create') }}">
+                    {{ trans('global.add') }} {{ trans('cruds.incident.title_singular') }}
+                </a>
+            </div>
+        </div>
+    @endcan
+    <div class="card">
+        <div class="card-header">
+            {{ trans('cruds.incident.title_singular') }} {{ trans('global.list') }}
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class=" table table-bordered table-striped table-hover datatable datatable-usersIncidents">
+                    <thead>
+                        <tr>
+                            <th width="10">
+
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.id') }}
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.name') }}
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.type') }}
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.date') }}
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.starttime') }}
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.endtime') }}
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.resources') }}
+                            </th>
+                            <th>
+                                {{ trans('cruds.incident.fields.users') }}
+                            </th>
+                            <th>
+                                &nbsp;
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($incidents as $key => $incident)
+                            <tr data-entry-id="{{ $incident->id }}">
+                                <td>
+
+                                </td>
+                                <td>
+                                    {{ $incident->id ?? '' }}
+                                </td>
+                                <td>
+                                    {{ $incident->name ?? '' }}
+                                </td>
+                                <td>
+                                    {{ App\Models\Incident::TYPE_SELECT[$incident->type] ?? '' }}
+                                </td>
+                                <td>
+                                    {{ $incident->date ?? '' }}
+                                </td>
+                                <td>
+                                    {{ $incident->starttime ?? '' }}
+                                </td>
+                                <td>
+                                    {{ $incident->endtime ?? '' }}
+                                </td>
+                                <td>
+                                    @foreach($incident->resources as $key => $item)
+                                        <span class="badge badge-info">{{ $item->name }}</span>
+                                    @endforeach
+                                </td>
+                                <td>
+                                    @foreach($incident->users as $key => $item)
+                                        <span class="badge badge-info">{{ $item->firstname }}</span>
+                                    @endforeach
+                                </td>
+                                <td>
+                                    @can('incident_show')
+                                        <a class="btn btn-xs btn-primary" href="{{ route('admin.incidents.show', $incident->id) }}">
+                                            {{ trans('global.view') }}
+                                        </a>
+                                    @endcan
+
+                                    @can('incident_edit')
+                                        <a class="btn btn-xs btn-info" href="{{ route('admin.incidents.edit', $incident->id) }}">
+                                            {{ trans('global.edit') }}
+                                        </a>
+                                    @endcan
+
+                                    @can('incident_delete')
+                                        <form action="{{ route('admin.incidents.destroy', $incident->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
+                                            <input type="hidden" name="_method" value="DELETE">
+                                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                            <input type="submit" class="btn btn-xs btn-danger" value="{{ trans('global.delete') }}">
+                                        </form>
+                                    @endcan
+
+                                </td>
+
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@section('scripts')
+@parent
+<script>
+    $(function () {
+  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
+@can('incident_delete')
+  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}'
+  let deleteButton = {
+    text: deleteButtonTrans,
+    url: "{{ route('admin.incidents.massDestroy') }}",
+    className: 'btn-danger',
+    action: function (e, dt, node, config) {
+      var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) {
+          return $(entry).data('entry-id')
+      });
+
+      if (ids.length === 0) {
+        alert('{{ trans('global.datatables.zero_selected') }}')
+
+        return
+      }
+
+      if (confirm('{{ trans('global.areYouSure') }}')) {
+        $.ajax({
+          headers: {'x-csrf-token': _token},
+          method: 'POST',
+          url: config.url,
+          data: { ids: ids, _method: 'DELETE' }})
+          .done(function () { location.reload() })
+      }
+    }
+  }
+  dtButtons.push(deleteButton)
+@endcan
+
+  $.extend(true, $.fn.dataTable.defaults, {
+    orderCellsTop: true,
+    order: [[ 1, 'desc' ]],
+    pageLength: 100,
+  });
+  let table = $('.datatable-usersIncidents:not(.ajaxTable)').DataTable({ buttons: dtButtons })
+  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
+      $($.fn.dataTable.tables(true)).DataTable()
+          .columns.adjust();
+  });
+  
+})
+
+</script>
+@endsection
